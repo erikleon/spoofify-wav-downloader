@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "spotify-wav-downloader"
+version = "0.1.0"
+description = "Download .wav files from Spotify playlists in the highest quality lossless audio"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "spotipy>=2.23.0",
+    "yt-dlp>=2024.1.0",
+    "pydub>=0.25.1",
+    "python-dotenv>=1.0.0",
+    "rich>=13.0.0",
+]
+
+[project.scripts]
+spotify-wav-dl = "spotify_wav_dl.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["spotify_wav_dl*"]

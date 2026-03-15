@@ -15,7 +15,7 @@ Download songs from a Spotify playlist as high-quality lossless **.wav** files (
 - **ffmpeg** — `brew install ffmpeg` (macOS) or `apt install ffmpeg` (Linux)
 - **yt-dlp** — installed automatically with pip, or `brew install yt-dlp`
 - A **Spotify Developer** account with a Client ID and Secret → [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard)
-- *(Optional)* A **Deezer** account — for lossless FLAC downloads (see [Deezer setup](#deezer-setup))
+- _(Optional)_ A **Deezer** account — for lossless FLAC downloads (see [Deezer setup](#deezer-setup))
 
 ## Setup
 
@@ -92,11 +92,11 @@ The tool tries sources in order of quality:
 
 ### Source priority
 
-| Priority | Source  | Format       | Quality                         |
-|----------|---------|--------------|---------------------------------|
+| Priority | Source  | Format       | Quality                        |
+| -------- | ------- | ------------ | ------------------------------ |
 | 1        | Deezer  | FLAC         | Lossless 16-bit / 44.1 kHz     |
-| 2        | Deezer  | MP3 320 kbps | High-quality lossy fallback     |
-| 3        | YouTube | Best audio   | Lossless-preferred format sort  |
+| 2        | Deezer  | MP3 320 kbps | High-quality lossy fallback    |
+| 3        | YouTube | Best audio   | Lossless-preferred format sort |
 
 ### YouTube format sort order
 

@@ -5,6 +5,12 @@ from __future__ import annotations
 import subprocess
 import shutil
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+from mutagen.id3 import ID3, TIT2, TPE1, TALB, TRCK, ID3NoHeaderError
+
+if TYPE_CHECKING:
+    from .spotify import TrackInfo
 
 
 # Target WAV parameters — CD-quality or better
@@ -13,10 +19,26 @@ BIT_DEPTH = 24            # bits per sample
 CHANNELS = 2              # stereo
 
 
+def _write_metadata(wav_path: Path, track: TrackInfo) -> None:
+    """Embed ID3 metadata tags into the WAV file."""
+    try:
+        tags = ID3(str(wav_path))
+    except ID3NoHeaderError:
+        tags = ID3()
+
+    tags.add(TIT2(encoding=3, text=[track.title]))
+    tags.add(TPE1(encoding=3, text=[track.artist_string]))
+    tags.add(TALB(encoding=3, text=[track.album]))
+    tags.add(TRCK(encoding=3, text=[str(track.track_number)]))
+
+    tags.save(str(wav_path))
+
+
 def to_wav(
     source: Path,
     output_dir: Path | None = None,
     *,
+    track: TrackInfo | None = None,
     keep_original: bool = False,
 ) -> Path:
     """Convert *source* to a PCM WAV file and return the output path.
@@ -41,6 +63,8 @@ def to_wav(
     wav_path = output_dir / f"{source.stem}.wav"
 
     if wav_path.exists():
+        if track is not None:
+            _write_metadata(wav_path, track)
         if not keep_original:
             source.unlink(missing_ok=True)
         return wav_path
@@ -62,6 +86,9 @@ def to_wav(
         raise RuntimeError(
             f"ffmpeg conversion failed for {source.name}:\n{result.stderr}"
         )
+
+    if track is not None:
+        _write_metadata(wav_path, track)
 
     if not keep_original:
         source.unlink(missing_ok=True)

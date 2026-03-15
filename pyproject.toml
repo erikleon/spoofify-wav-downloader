@@ -16,6 +16,7 @@ dependencies = [
     "rich>=13.0.0",
     "pycryptodome>=3.19.0",
     "requests>=2.31.0",
+    "mutagen>=1.47.0",
 ]
 
 [project.scripts]

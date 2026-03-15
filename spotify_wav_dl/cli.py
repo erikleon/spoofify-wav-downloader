@@ -137,6 +137,7 @@ def main(argv: list[str] | None = None) -> None:
                 to_wav(
                     downloaded,
                     playlist_dir,
+                    track=track,
                     keep_original=args.keep_original,
                 )
                 succeeded += 1

@@ -55,9 +55,9 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "-s",
         "--source",
-        choices=["auto", "deezer", "youtube"],
+        choices=["auto", "deezer", "youtube", "soundcloud"],
         default="auto",
-        help="Audio source: auto (Deezer→YouTube), deezer, or youtube (default: auto)",
+        help="Audio source: auto (Deezer→YouTube→SoundCloud), deezer, youtube, or soundcloud (default: auto)",
     )
     return parser.parse_args(argv)
 
@@ -74,14 +74,16 @@ def main(argv: list[str] | None = None) -> None:
     deezer_available = bool(os.environ.get("DEEZER_ARL"))
     if args.source == "auto":
         if deezer_available:
-            console.print("Sources: [green]Deezer (FLAC)[/green] → [yellow]YouTube[/yellow] fallback")
+            console.print("Sources: [green]Deezer (FLAC)[/green] → [yellow]YouTube[/yellow] → [blue]SoundCloud[/blue] fallback")
         else:
-            console.print("Sources: [yellow]YouTube only[/yellow]  (set DEEZER_ARL for lossless Deezer FLAC)")
+            console.print("Sources: [yellow]YouTube[/yellow] → [blue]SoundCloud[/blue]  (set DEEZER_ARL for lossless Deezer FLAC)")
     elif args.source == "deezer":
         if not deezer_available:
             console.print("[bold red]Error:[/bold red] DEEZER_ARL not set. Add it to .env")
             sys.exit(1)
         console.print("Sources: [green]Deezer (FLAC)[/green] only")
+    elif args.source == "soundcloud":
+        console.print("Sources: [blue]SoundCloud[/blue] only")
     else:
         console.print("Sources: [yellow]YouTube[/yellow] only")
     console.print()
@@ -107,7 +109,7 @@ def main(argv: list[str] | None = None) -> None:
 
     succeeded = 0
     failed: list[str] = []
-    source_counts: dict[str, int] = {"deezer": 0, "youtube": 0}
+    source_counts: dict[str, int] = {"deezer": 0, "youtube": 0, "soundcloud": 0}
 
     with Progress(
         SpinnerColumn(),
@@ -156,6 +158,8 @@ def main(argv: list[str] | None = None) -> None:
         parts.append(f"[green]{source_counts['deezer']} from Deezer[/green]")
     if source_counts["youtube"]:
         parts.append(f"[yellow]{source_counts['youtube']} from YouTube[/yellow]")
+    if source_counts["soundcloud"]:
+        parts.append(f"[blue]{source_counts['soundcloud']} from SoundCloud[/blue]")
     if parts:
         console.print(f"  ({', '.join(parts)})")
     if failed:

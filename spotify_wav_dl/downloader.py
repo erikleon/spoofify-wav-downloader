@@ -1,8 +1,9 @@
-"""Download audio with Deezer (FLAC) as primary source and YouTube as fallback.
+"""Download audio from multiple sources, prioritising lossless quality.
 
-Source priority:
+Source priority (in auto mode):
   1. Deezer – true lossless FLAC via ISRC / search matching
   2. YouTube – best available audio via yt-dlp (lossless-preferred format sort)
+  3. SoundCloud – additional catalogue coverage via yt-dlp
 """
 
 from __future__ import annotations
@@ -87,6 +88,49 @@ def _download_from_youtube(
     return None
 
 
+# ── SoundCloud helpers ────────────────────────────────────────────────
+
+def _download_from_soundcloud(
+    track: TrackInfo,
+    output_dir: Path,
+    *,
+    max_search_results: int = 5,
+) -> Path | None:
+    """Search SoundCloud for *track* and download the best-quality audio."""
+    yt_dlp = _find_yt_dlp()
+    _find_ffmpeg()
+
+    output_template = str(output_dir / f"{track.safe_filename}.%(ext)s")
+    query = f"scsearch{max_search_results}:{track.search_query}"
+
+    cmd = [
+        yt_dlp,
+        "--no-playlist",
+        "-f", "bestaudio",
+        "-S", _YDL_FORMAT_SORT,
+        "--match-filter", f"duration >? {(track.duration_ms // 1000) - 30} & duration <? {(track.duration_ms // 1000) + 30}",
+        "-x",
+        "-o", output_template,
+        "--no-overwrites",
+        "--no-warnings",
+        "-q",
+        query,
+        "--playlist-items", "1",
+    ]
+
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+
+    if result.returncode != 0:
+        return None
+
+    for ext in ("flac", "opus", "wav", "m4a", "ogg", "mp3", "webm"):
+        candidate = output_dir / f"{track.safe_filename}.{ext}"
+        if candidate.exists():
+            return candidate
+
+    return None
+
+
 # ── Unified download function ────────────────────────────────────────
 
 def search_and_download(
@@ -98,9 +142,10 @@ def search_and_download(
     """Download *track* to *output_dir*, returning (path, source_used).
 
     *source* controls where to look:
-      - ``"auto"``    – try Deezer first, fall back to YouTube
-      - ``"deezer"``  – Deezer only
-      - ``"youtube"`` – YouTube only
+      - ``"auto"``       – try Deezer → YouTube → SoundCloud
+      - ``"deezer"``     – Deezer only
+      - ``"youtube"``    – YouTube only
+      - ``"soundcloud"`` – SoundCloud only
 
     Returns ``(None, "")`` if every source fails.
     """
@@ -111,9 +156,9 @@ def search_and_download(
 
     if source == "auto":
         if deezer_arl:
-            sources = ["deezer", "youtube"]
+            sources = ["deezer", "youtube", "soundcloud"]
         else:
-            sources = ["youtube"]
+            sources = ["youtube", "soundcloud"]
     else:
         sources = [source]
 
@@ -131,6 +176,12 @@ def search_and_download(
         elif src == "youtube":
             try:
                 path = _download_from_youtube(track, output_dir)
+            except Exception:
+                path = None
+
+        elif src == "soundcloud":
+            try:
+                path = _download_from_soundcloud(track, output_dir)
             except Exception:
                 path = None
 

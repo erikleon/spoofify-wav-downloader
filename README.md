@@ -7,7 +7,8 @@ Download songs from a Spotify playlist as high-quality lossless **.wav** files (
 1. Reads track metadata from the Spotify Web API (title, artist, duration, ISRC).
 2. **Deezer (preferred):** Matches tracks by ISRC or search and downloads true **lossless FLAC** streams.
 3. **YouTube (fallback):** If Deezer is unavailable or the track isn't found, searches YouTube via **yt-dlp**, prioritising lossless codecs (FLAC → ALAC → WAV) and highest bitrate.
-4. Converts the downloaded audio to **WAV** (signed 24-bit PCM, 48 kHz stereo) using **ffmpeg**.
+4. **SoundCloud (fallback):** If neither Deezer nor YouTube has the track, searches SoundCloud via **yt-dlp**.
+5. Converts the downloaded audio to **WAV** (signed 24-bit PCM, 48 kHz stereo) using **ffmpeg**.
 
 ## Prerequisites
 
@@ -52,7 +53,7 @@ To enable lossless FLAC downloads from Deezer:
    DEEZER_ARL=your_arl_token_here
    ```
 
-If `DEEZER_ARL` is not set, the tool will automatically use YouTube as the only source.
+If `DEEZER_ARL` is not set, the tool will automatically use YouTube and SoundCloud as sources.
 
 ## Usage
 
@@ -72,6 +73,7 @@ spotify-wav-dl "https://open.spotify.com/playlist/..." --keep-original
 # Force a specific source
 spotify-wav-dl "https://open.spotify.com/playlist/..." --source deezer
 spotify-wav-dl "https://open.spotify.com/playlist/..." --source youtube
+spotify-wav-dl "https://open.spotify.com/playlist/..." --source soundcloud
 ```
 
 ## Output
@@ -92,11 +94,12 @@ The tool tries sources in order of quality:
 
 ### Source priority
 
-| Priority | Source  | Format       | Quality                        |
-| -------- | ------- | ------------ | ------------------------------ |
-| 1        | Deezer  | FLAC         | Lossless 16-bit / 44.1 kHz     |
-| 2        | Deezer  | MP3 320 kbps | High-quality lossy fallback    |
-| 3        | YouTube | Best audio   | Lossless-preferred format sort |
+| Priority | Source     | Format       | Quality                        |
+| -------- | ---------- | ------------ | ------------------------------ |
+| 1        | Deezer     | FLAC         | Lossless 16-bit / 44.1 kHz     |
+| 2        | Deezer     | MP3 320 kbps | High-quality lossy fallback    |
+| 3        | YouTube    | Best audio   | Lossless-preferred format sort |
+| 4        | SoundCloud | Best audio   | Lossless-preferred format sort |
 
 ### YouTube format sort order
 

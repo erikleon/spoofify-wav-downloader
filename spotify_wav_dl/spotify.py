@@ -17,9 +17,13 @@ class TrackInfo:
     title: str
     artists: list[str]
     album: str
+    album_artist: str
+    disc_number: int
     duration_ms: int
     isrc: str | None
     track_number: int
+    total_tracks: int
+    release_date: str
     spotify_id: str
 
     @property
@@ -94,14 +98,19 @@ def get_playlist_tracks(url_or_id: str) -> tuple[str, list[TrackInfo]]:
                 continue
 
             external_ids = track.get("external_ids", {})
+            album = track["album"]
             tracks.append(
                 TrackInfo(
                     title=track["name"],
                     artists=[a["name"] for a in track["artists"]],
-                    album=track["album"]["name"],
+                    album=album["name"],
+                    album_artist=album["artists"][0]["name"] if album.get("artists") else "",
+                    disc_number=track.get("disc_number", 1),
                     duration_ms=track["duration_ms"],
                     isrc=external_ids.get("isrc"),
                     track_number=track["track_number"],
+                    total_tracks=album.get("total_tracks", 0),
+                    release_date=album.get("release_date", ""),
                     spotify_id=track["id"],
                 )
             )

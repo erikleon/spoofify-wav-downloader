@@ -132,6 +132,7 @@ def main(argv: list[str] | None = None) -> None:
                     downloaded,
                     playlist_dir,
                     track=track,
+                    playlist_name=playlist_name,
                     keep_original=args.keep_original,
                 )
                 succeeded += 1

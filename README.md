@@ -78,11 +78,11 @@ The tool tries sources in order of quality:
 
 ### Source priority
 
-| Priority | Source     | Format       | Quality                        |
-| -------- | ---------- | ------------ | ------------------------------ |
-| 1        | Bandcamp   | FLAC         | Lossless (when available)      |
-| 2        | YouTube    | Best audio   | Lossless-preferred format sort |
-| 3        | SoundCloud | Best audio   | Lossless-preferred format sort |
+| Priority | Source     | Format     | Quality                        |
+| -------- | ---------- | ---------- | ------------------------------ |
+| 1        | Bandcamp   | FLAC       | Lossless (when available)      |
+| 2        | YouTube    | Best audio | Lossless-preferred format sort |
+| 3        | SoundCloud | Best audio | Lossless-preferred format sort |
 
 ### YouTube format sort order
 

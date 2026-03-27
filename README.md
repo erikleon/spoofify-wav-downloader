@@ -5,9 +5,9 @@ Download songs from a Spotify playlist as high-quality lossless **.wav** files (
 ## How it works
 
 1. Reads track metadata from the Spotify Web API (title, artist, duration, ISRC).
-2. **Deezer (preferred):** Matches tracks by ISRC or search and downloads true **lossless FLAC** streams.
-3. **YouTube (fallback):** If Deezer is unavailable or the track isn't found, searches YouTube via **yt-dlp**, prioritising lossless codecs (FLAC → ALAC → WAV) and highest bitrate.
-4. **SoundCloud (fallback):** If neither Deezer nor YouTube has the track, searches SoundCloud via **yt-dlp**.
+2. **Bandcamp (preferred):** Searches Bandcamp for lossless **FLAC / WAV** downloads.
+3. **YouTube (fallback):** If Bandcamp doesn't have the track, searches YouTube via **yt-dlp**, prioritising lossless codecs (FLAC → ALAC → WAV) and highest bitrate.
+4. **SoundCloud (fallback):** If neither Bandcamp nor YouTube has the track, searches SoundCloud via **yt-dlp**.
 5. Converts the downloaded audio to **WAV** (signed 24-bit PCM, 48 kHz stereo) using **ffmpeg**.
 
 ## Prerequisites
@@ -16,7 +16,6 @@ Download songs from a Spotify playlist as high-quality lossless **.wav** files (
 - **ffmpeg** — `brew install ffmpeg` (macOS) or `apt install ffmpeg` (Linux)
 - **yt-dlp** — installed automatically with pip, or `brew install yt-dlp`
 - A **Spotify Developer** account with a Client ID and Secret → [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard)
-- _(Optional)_ A **Deezer** account — for lossless FLAC downloads (see [Deezer setup](#deezer-setup))
 
 ## Setup
 
@@ -38,22 +37,7 @@ pip install .
 # Configure Spotify credentials
 cp .env.example .env
 # Edit .env and fill in SPOTIPY_CLIENT_ID and SPOTIPY_CLIENT_SECRET
-# Optionally add DEEZER_ARL for lossless FLAC (see below)
 ```
-
-### Deezer setup
-
-To enable lossless FLAC downloads from Deezer:
-
-1. Log into [deezer.com](https://www.deezer.com) in your browser.
-2. Open DevTools (`F12`) → **Application** → **Cookies** → `https://www.deezer.com`.
-3. Copy the value of the `arl` cookie.
-4. Add it to your `.env` file:
-   ```
-   DEEZER_ARL=your_arl_token_here
-   ```
-
-If `DEEZER_ARL` is not set, the tool will automatically use YouTube and SoundCloud as sources.
 
 ## Usage
 
@@ -71,7 +55,7 @@ spotify-wav-dl "https://open.spotify.com/playlist/..." -o ~/Music/playlists
 spotify-wav-dl "https://open.spotify.com/playlist/..." --keep-original
 
 # Force a specific source
-spotify-wav-dl "https://open.spotify.com/playlist/..." --source deezer
+spotify-wav-dl "https://open.spotify.com/playlist/..." --source bandcamp
 spotify-wav-dl "https://open.spotify.com/playlist/..." --source youtube
 spotify-wav-dl "https://open.spotify.com/playlist/..." --source soundcloud
 ```
@@ -96,10 +80,9 @@ The tool tries sources in order of quality:
 
 | Priority | Source     | Format       | Quality                        |
 | -------- | ---------- | ------------ | ------------------------------ |
-| 1        | Deezer     | FLAC         | Lossless 16-bit / 44.1 kHz     |
-| 2        | Deezer     | MP3 320 kbps | High-quality lossy fallback    |
-| 3        | YouTube    | Best audio   | Lossless-preferred format sort |
-| 4        | SoundCloud | Best audio   | Lossless-preferred format sort |
+| 1        | Bandcamp   | FLAC         | Lossless (when available)      |
+| 2        | YouTube    | Best audio   | Lossless-preferred format sort |
+| 3        | SoundCloud | Best audio   | Lossless-preferred format sort |
 
 ### YouTube format sort order
 

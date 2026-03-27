@@ -1,19 +1,18 @@
 """Download audio from multiple sources, prioritising lossless quality.
 
 Source priority (in auto mode):
-  1. Deezer – true lossless FLAC via ISRC / search matching
+  1. Bandcamp – lossless FLAC / WAV when available
   2. YouTube – best available audio via yt-dlp (lossless-preferred format sort)
   3. SoundCloud – additional catalogue coverage via yt-dlp
 """
 
 from __future__ import annotations
 
-import os
 import subprocess
 import shutil
 from pathlib import Path
 
-from .deezer import download_from_deezer
+from .bandcamp import search_bandcamp
 from .spotify import TrackInfo
 
 # ── YouTube helpers ───────────────────────────────────────────────────
@@ -45,6 +44,60 @@ def _find_ffmpeg() -> str:
             "Install it: brew install ffmpeg  (or apt install ffmpeg)"
         )
     return path
+
+
+# ── Bandcamp helpers ──────────────────────────────────────────────────
+
+
+def _download_from_bandcamp(
+    track: TrackInfo,
+    output_dir: Path,
+    *,
+    max_search_results: int = 5,
+) -> Path | None:
+    """Search Bandcamp for *track* and download the best-quality audio."""
+    yt_dlp = _find_yt_dlp()
+    _find_ffmpeg()
+
+    results = search_bandcamp(track.search_query, max_results=max_search_results)
+    if not results:
+        return None
+
+    output_template = str(output_dir / f"{track.safe_filename}.%(ext)s")
+    track_duration = track.duration_ms // 1000
+
+    for result in results:
+        if result.get("duration_secs") is not None:
+            if abs(result["duration_secs"] - track_duration) > 30:
+                continue
+
+        cmd = [
+            yt_dlp,
+            "--no-playlist",
+            "-f", "bestaudio",
+            "-S", _YDL_FORMAT_SORT,
+            "--match-filter",
+            f"duration >? {track_duration - 30} & duration <? {track_duration + 30}",
+            "-x",
+            "-o", output_template,
+            "--no-overwrites",
+            "--no-warnings",
+            "-q",
+            result["url"],
+        ]
+
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+
+        if proc.returncode == 0:
+            for ext in ("flac", "opus", "wav", "m4a", "ogg", "mp3", "webm"):
+                candidate = output_dir / f"{track.safe_filename}.{ext}"
+                if candidate.exists():
+                    return candidate
+
+    return None
+
+
+# ── YouTube helpers ───────────────────────────────────────────────────
 
 
 def _download_from_youtube(
@@ -142,34 +195,28 @@ def search_and_download(
     """Download *track* to *output_dir*, returning (path, source_used).
 
     *source* controls where to look:
-      - ``"auto"``       – try Deezer → YouTube → SoundCloud
-      - ``"deezer"``     – Deezer only
+      - ``"auto"``       – try Bandcamp → YouTube → SoundCloud
+      - ``"bandcamp"``   – Bandcamp only
       - ``"youtube"``    – YouTube only
       - ``"soundcloud"`` – SoundCloud only
 
     Returns ``(None, "")`` if every source fails.
     """
     output_dir.mkdir(parents=True, exist_ok=True)
-    deezer_arl = os.environ.get("DEEZER_ARL", "")
 
     sources: list[str] = []
 
     if source == "auto":
-        if deezer_arl:
-            sources = ["deezer", "youtube", "soundcloud"]
-        else:
-            sources = ["youtube", "soundcloud"]
+        sources = ["bandcamp", "youtube", "soundcloud"]
     else:
         sources = [source]
 
     for src in sources:
         path: Path | None = None
 
-        if src == "deezer":
-            if not deezer_arl:
-                continue
+        if src == "bandcamp":
             try:
-                path = download_from_deezer(track, output_dir, deezer_arl)
+                path = _download_from_bandcamp(track, output_dir)
             except Exception:
                 path = None
 

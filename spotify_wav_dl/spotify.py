@@ -37,6 +37,11 @@ class TrackInfo:
         return re.sub(r'[<>:"/\\|?*]', "_", name).strip()
 
     @property
+    def safe_title(self) -> str:
+        """Return a filesystem-safe version of just the track title."""
+        return re.sub(r'[<>:"/\\|?*]', "_", self.title).strip()
+
+    @property
     def search_query(self) -> str:
         """Return a search query optimised for finding the track on YouTube."""
         return f"{self.artist_string} - {self.title}"

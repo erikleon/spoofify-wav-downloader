@@ -48,7 +48,8 @@ def to_wav(
         output_dir = source.parent
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    wav_path = output_dir / f"{source.stem}.wav"
+    wav_name = track.safe_title if track is not None else source.stem
+    wav_path = output_dir / f"{wav_name}.wav"
 
     if wav_path.exists():
         if not keep_original:

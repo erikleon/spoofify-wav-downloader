@@ -46,6 +46,37 @@ def _find_ffmpeg() -> str:
     return path
 
 
+# ── Direct URL download ───────────────────────────────────────────────
+
+
+def _download_from_url(track: TrackInfo, output_dir: Path) -> Path | None:
+    """Download audio from track.source_url directly (e.g. a known Bandcamp track URL)."""
+    yt_dlp = _find_yt_dlp()
+    _find_ffmpeg()
+
+    output_template = str(output_dir / f"{track.safe_filename}.%(ext)s")
+    cmd = [
+        yt_dlp,
+        "--no-playlist",
+        "-f", "bestaudio",
+        "-S", _YDL_FORMAT_SORT,
+        "-x",
+        "-o", output_template,
+        "--no-overwrites",
+        "--no-warnings",
+        "-q",
+        track.source_url,
+    ]
+
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+    if proc.returncode == 0:
+        for ext in ("flac", "opus", "wav", "m4a", "ogg", "mp3", "webm"):
+            candidate = output_dir / f"{track.safe_filename}.{ext}"
+            if candidate.exists():
+                return candidate
+    return None
+
+
 # ── Bandcamp helpers ──────────────────────────────────────────────────
 
 
@@ -203,6 +234,14 @@ def search_and_download(
     Returns ``(None, "")`` if every source fails.
     """
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    if track.source_url:
+        try:
+            path = _download_from_url(track, output_dir)
+        except Exception:
+            path = None
+        if path is not None:
+            return path, "bandcamp"
 
     sources: list[str] = []
 

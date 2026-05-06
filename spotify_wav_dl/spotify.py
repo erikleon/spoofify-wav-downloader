@@ -25,6 +25,7 @@ class TrackInfo:
     total_tracks: int
     release_date: str
     spotify_id: str
+    source_url: str | None = None
 
     @property
     def artist_string(self) -> str:

@@ -52,6 +52,20 @@ PLAYLIST_URL_RE = re.compile(
     r"(?:https?://)?(?:open\.)?spotify\.com/playlist/([a-zA-Z0-9]+)"
 )
 
+ALBUM_URL_RE = re.compile(
+    r"(?:https?://)?(?:open\.)?spotify\.com/album/([a-zA-Z0-9]+)"
+)
+
+
+def _extract_album_id(url_or_id: str) -> str:
+    """Extract a Spotify album ID from a URL or return the raw ID."""
+    match = ALBUM_URL_RE.search(url_or_id)
+    if match:
+        return match.group(1)
+    if re.fullmatch(r"[a-zA-Z0-9]{22}", url_or_id):
+        return url_or_id
+    raise ValueError(f"Invalid Spotify album URL or ID: {url_or_id!r}")
+
 
 def _extract_playlist_id(url_or_id: str) -> str:
     """Extract a Spotify playlist ID from a URL or return the raw ID."""
@@ -127,3 +141,45 @@ def get_playlist_tracks(url_or_id: str) -> tuple[str, list[TrackInfo]]:
             break
 
     return playlist_name, tracks
+
+
+def get_album_tracks(url_or_id: str) -> tuple[str, list[TrackInfo]]:
+    """Fetch every track in the Spotify album *url_or_id* and return (album_name, tracks)."""
+    sp = _build_client()
+    album_id = _extract_album_id(url_or_id)
+
+    album = sp.album(album_id)
+    album_name = album["name"]
+    album_artist = album["artists"][0]["name"] if album.get("artists") else ""
+    release_date = album.get("release_date", "")
+    total_tracks = album.get("total_tracks", 0)
+
+    tracks: list[TrackInfo] = []
+    results = album["tracks"]
+
+    while True:
+        for track in results["items"]:
+            if track is None:
+                continue
+            external_ids = track.get("external_ids", {})
+            tracks.append(
+                TrackInfo(
+                    title=track["name"],
+                    artists=[a["name"] for a in track["artists"]],
+                    album=album_name,
+                    album_artist=album_artist,
+                    disc_number=track.get("disc_number", 1),
+                    duration_ms=track["duration_ms"],
+                    isrc=external_ids.get("isrc"),
+                    track_number=track["track_number"],
+                    total_tracks=total_tracks,
+                    release_date=release_date,
+                    spotify_id=track["id"],
+                )
+            )
+        if results["next"]:
+            results = sp.next(results)
+        else:
+            break
+
+    return album_name, tracks

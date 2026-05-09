@@ -1,11 +1,11 @@
 # spotify-wav-downloader
 
-Download songs from a Spotify playlist as high-quality lossless **.wav** files (PCM 24-bit / 48 kHz).
+Download songs from a Spotify playlist or album, a Bandcamp album, or an entire Bandcamp artist discography as high-quality lossless **.wav** files (PCM 24-bit / 48 kHz).
 
 ## How it works
 
-1. Reads track metadata from the Spotify Web API (title, artist, duration, ISRC).
-2. **Bandcamp (preferred):** Searches Bandcamp for lossless **FLAC / WAV** downloads.
+1. Reads track metadata from Spotify or Bandcamp (title, artist, album, duration, ISRC).
+2. **Bandcamp (preferred):** For Bandcamp URLs, downloads audio directly from the source page. For Spotify inputs, searches Bandcamp for lossless **FLAC / WAV** downloads.
 3. **YouTube (fallback):** If Bandcamp doesn't have the track, searches YouTube via **yt-dlp**, prioritising lossless codecs (FLAC → ALAC → WAV) and highest bitrate.
 4. **SoundCloud (fallback):** If neither Bandcamp nor YouTube has the track, searches SoundCloud via **yt-dlp**.
 5. Converts the downloaded audio to **WAV** (signed 24-bit PCM, 48 kHz stereo) using **ffmpeg**.
@@ -42,14 +42,20 @@ cp .env.example .env
 ## Usage
 
 ```bash
-# Using the installed CLI
+# Spotify playlist
 spotify-wav-dl "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M"
 
-# Or run as a module
-python -m spotify_wav_dl.cli "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M"
+# Spotify album
+spotify-wav-dl "https://open.spotify.com/album/4eLPsYPBmXABThSJ821sqY"
+
+# Bandcamp album
+spotify-wav-dl "https://artist.bandcamp.com/album/album-name"
+
+# Bandcamp artist — downloads every album in the discography
+spotify-wav-dl "https://artist.bandcamp.com"
 
 # Custom output directory
-spotify-wav-dl "https://open.spotify.com/playlist/..." -o ~/Music/playlists
+spotify-wav-dl "https://open.spotify.com/playlist/..." -o ~/Music
 
 # Keep intermediate (non-WAV) files
 spotify-wav-dl "https://open.spotify.com/playlist/..." --keep-original
@@ -62,13 +68,28 @@ spotify-wav-dl "https://open.spotify.com/playlist/..." --source soundcloud
 
 ## Output
 
-Files are saved to `./downloads/<Playlist Name>/` by default:
+Tracks are saved under `./downloads/` organised by artist and album:
 
 ```
 downloads/
-  Today's Top Hits/
-    Artist - Song Title.wav
-    Artist - Another Song.wav
+  Playlist or Album Name/
+    Artist Name/
+      Album Name/
+        Track Title.wav
+        Track Title.wav
+        ...
+```
+
+For a Bandcamp artist download all albums land directly under the output directory:
+
+```
+downloads/
+  Artist Name/
+    Album Name/
+      Track Title.wav
+      ...
+  Another Album/
+    Track Title.wav
     ...
 ```
 

@@ -24,7 +24,7 @@ from .bandcamp import (
     get_album_tracks as get_bandcamp_album_tracks,
     get_artist_albums as get_bandcamp_artist_albums,
 )
-from .converter import to_wav
+from .converter import to_aiff, write_id3_tags
 from .downloader import search_and_download
 from .spotify import get_album_tracks as get_spotify_album_tracks, get_playlist_tracks
 
@@ -126,7 +126,7 @@ def _download_tracks(
                     progress.advance(task)
                     continue
 
-                to_wav(
+                to_aiff(
                     downloaded,
                     track_dir,
                     track=track,
@@ -151,7 +151,7 @@ def _print_summary(
     output_dir: "Path",
 ) -> None:
     console.print()
-    console.print(f"[bold green]✓ {succeeded}[/bold green] tracks downloaded as .wav")
+    console.print(f"[bold green]✓ {succeeded}[/bold green] tracks downloaded as .aiff")
     parts = []
     if source_counts["bandcamp"]:
         parts.append(f"[green]{source_counts['bandcamp']} from Bandcamp[/green]")

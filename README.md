@@ -1,6 +1,6 @@
 # spotify-wav-downloader
 
-Download songs from a Spotify playlist or album, a Bandcamp album, or an entire Bandcamp artist discography as high-quality lossless **.wav** files (PCM 24-bit / 48 kHz).
+Download songs from a Spotify playlist or album, a Bandcamp album, or an entire Bandcamp artist discography as high-quality lossless **.aiff** files (PCM 24-bit / 48 kHz) with full metadata for Apple Music.
 
 ## How it works
 
@@ -8,7 +8,7 @@ Download songs from a Spotify playlist or album, a Bandcamp album, or an entire 
 2. **Bandcamp (preferred):** For Bandcamp URLs, downloads audio directly from the source page. For Spotify inputs, searches Bandcamp for lossless **FLAC / WAV** downloads.
 3. **YouTube (fallback):** If Bandcamp doesn't have the track, searches YouTube via **yt-dlp**, prioritising lossless codecs (FLAC → ALAC → WAV) and highest bitrate.
 4. **SoundCloud (fallback):** If neither Bandcamp nor YouTube has the track, searches SoundCloud via **yt-dlp**.
-5. Converts the downloaded audio to **WAV** (signed 24-bit PCM, 48 kHz stereo) using **ffmpeg**.
+5. Converts the downloaded audio to **AIFF** (signed 24-bit PCM, 48 kHz stereo) using **ffmpeg**, then writes ID3v2.3 metadata tags via **mutagen** for reliable Apple Music import.
 
 ## Prerequisites
 
@@ -57,13 +57,16 @@ spotify-wav-dl "https://artist.bandcamp.com"
 # Custom output directory
 spotify-wav-dl "https://open.spotify.com/playlist/..." -o ~/Music
 
-# Keep intermediate (non-WAV) files
+# Keep intermediate (pre-conversion) files
 spotify-wav-dl "https://open.spotify.com/playlist/..." --keep-original
 
 # Force a specific source
 spotify-wav-dl "https://open.spotify.com/playlist/..." --source bandcamp
 spotify-wav-dl "https://open.spotify.com/playlist/..." --source youtube
 spotify-wav-dl "https://open.spotify.com/playlist/..." --source soundcloud
+
+# Re-write metadata tags on already-downloaded files (no re-download)
+spotify-wav-dl "https://open.spotify.com/playlist/..." --retag -o ~/Music
 ```
 
 ## Output
@@ -75,8 +78,8 @@ downloads/
   Playlist or Album Name/
     Artist Name/
       Album Name/
-        Track Title.wav
-        Track Title.wav
+        Track Title.aiff
+        Track Title.aiff
         ...
 ```
 
@@ -86,10 +89,10 @@ For a Bandcamp artist download all albums land directly under the output directo
 downloads/
   Artist Name/
     Album Name/
-      Track Title.wav
+      Track Title.aiff
       ...
   Another Album/
-    Track Title.wav
+    Track Title.aiff
     ...
 ```
 
@@ -115,7 +118,7 @@ The tool tries sources in order of quality:
 | 4        | Highest bitrate     | Best available lossy if no lossless found |
 | 5        | Opus / Vorbis / AAC | Common lossy fallbacks                    |
 
-All downloaded audio is converted to **WAV PCM signed 24-bit little-endian, 48 kHz stereo** regardless of source format.
+All downloaded audio is converted to **AIFF PCM signed 24-bit big-endian, 48 kHz stereo** regardless of source format. ID3v2.3 metadata tags (title, artist, album, album artist, track number, disc, year) are written via mutagen and import correctly into Apple Music.
 
 ## License
 

@@ -79,7 +79,57 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default="auto",
         help="Audio source: auto (Bandcamp→YouTube→SoundCloud), bandcamp, youtube, or soundcloud (default: auto)",
     )
+    parser.add_argument(
+        "--retag",
+        action="store_true",
+        help="Re-write metadata tags on already-downloaded WAV files instead of downloading",
+    )
     return parser.parse_args(argv)
+
+
+def _retag_tracks(
+    tracks: list,
+    collection_name: str,
+    collection_dir: "Path",
+) -> tuple[int, int]:
+    """Write ID3v2.3 tags to existing WAV files. Returns (tagged, missing)."""
+    tagged = 0
+    missing = 0
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        MofNCompleteColumn(),
+        TimeElapsedColumn(),
+        console=console,
+    ) as progress:
+        task = progress.add_task("Retagging", total=len(tracks))
+
+        for track in tracks:
+            progress.update(
+                task,
+                description=f"[cyan]{track.artist_string} - {track.title}[/cyan]",
+            )
+            track_dir = (
+                collection_dir
+                / _sanitize_dirname(track.artist_string)
+                / _sanitize_dirname(track.album)
+            )
+            aiff_path = track_dir / f"{track.safe_title}.aiff"
+
+            if aiff_path.exists():
+                try:
+                    write_id3_tags(aiff_path, track, collection_name)
+                    tagged += 1
+                except Exception as exc:
+                    console.print(f"[red]  ✗ {track.title}: {exc}[/red]")
+            else:
+                missing += 1
+
+            progress.advance(task)
+
+    return tagged, missing
 
 
 def _download_tracks(
@@ -220,15 +270,29 @@ def main(argv: list[str] | None = None) -> None:
             if not tracks:
                 continue
 
-            succeeded, failed, source_counts = _download_tracks(
-                tracks, album_name, args.output, args.source, args.keep_original
-            )
-            total_succeeded += succeeded
-            total_failed.extend(failed)
-            for k in total_source_counts:
-                total_source_counts[k] += source_counts[k]
+            if args.retag:
+                tagged, missing = _retag_tracks(tracks, album_name, args.output)
+                total_succeeded += tagged
+                if missing:
+                    total_failed.extend(
+                        [f"{t.artist_string} - {t.title} (not found)" for t in tracks
+                         if not (args.output / _sanitize_dirname(t.artist_string) / _sanitize_dirname(t.album) / f"{t.safe_title}.aiff").exists()]
+                    )
+            else:
+                succeeded, failed, source_counts = _download_tracks(
+                    tracks, album_name, args.output, args.source, args.keep_original
+                )
+                total_succeeded += succeeded
+                total_failed.extend(failed)
+                for k in total_source_counts:
+                    total_source_counts[k] += source_counts[k]
 
-        _print_summary(total_succeeded, total_failed, total_source_counts, args.output)
+        if args.retag:
+            console.print(f"\n[bold green]✓ {total_succeeded}[/bold green] tracks retagged")
+            if total_failed:
+                console.print(f"[yellow]  {len(total_failed)} tracks not found on disk[/yellow]")
+        else:
+            _print_summary(total_succeeded, total_failed, total_source_counts, args.output)
         return
 
     # --- Single album or playlist ---
@@ -260,10 +324,17 @@ def main(argv: list[str] | None = None) -> None:
         return
 
     collection_dir = args.output / _sanitize_dirname(collection_name)
-    succeeded, failed, source_counts = _download_tracks(
-        tracks, collection_name, collection_dir, args.source, args.keep_original
-    )
-    _print_summary(succeeded, failed, source_counts, collection_dir)
+
+    if args.retag:
+        tagged, missing = _retag_tracks(tracks, collection_name, collection_dir)
+        console.print(f"\n[bold green]✓ {tagged}[/bold green] tracks retagged")
+        if missing:
+            console.print(f"[yellow]  {missing} tracks not found on disk (run without --retag to download them)[/yellow]")
+    else:
+        succeeded, failed, source_counts = _download_tracks(
+            tracks, collection_name, collection_dir, args.source, args.keep_original
+        )
+        _print_summary(succeeded, failed, source_counts, collection_dir)
 
 
 if __name__ == "__main__":

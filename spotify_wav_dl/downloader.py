@@ -10,10 +10,21 @@ from __future__ import annotations
 
 import subprocess
 import shutil
+import sys
 from pathlib import Path
 
 from .bandcamp import search_bandcamp
 from .spotify import TrackInfo
+
+def _note(source: str, text: str) -> None:
+    """Say on stderr why a source gave nothing. Callers only see None."""
+    print(f"{source}: {text}", file=sys.stderr)
+
+
+def _failure_line(result: subprocess.CompletedProcess) -> str:
+    lines = [line for line in result.stderr.splitlines() if line.strip()]
+    return lines[-1] if lines else f"yt-dlp exited {result.returncode}"
+
 
 # ── YouTube helpers ───────────────────────────────────────────────────
 
@@ -162,6 +173,7 @@ def _download_from_youtube(
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
 
     if result.returncode != 0:
+        _note("youtube", _failure_line(result))
         return None
 
     for ext in ("flac", "opus", "wav", "m4a", "ogg", "mp3", "webm"):
@@ -169,6 +181,8 @@ def _download_from_youtube(
         if candidate.exists():
             return candidate
 
+    # yt-dlp exits 0 when the first hit fails the duration filter.
+    _note("youtube", "first result was not within 30 s of the track's length")
     return None
 
 
@@ -205,6 +219,7 @@ def _download_from_soundcloud(
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
 
     if result.returncode != 0:
+        _note("soundcloud", _failure_line(result))
         return None
 
     for ext in ("flac", "opus", "wav", "m4a", "ogg", "mp3", "webm"):
@@ -212,6 +227,8 @@ def _download_from_soundcloud(
         if candidate.exists():
             return candidate
 
+    # yt-dlp exits 0 when the first hit fails the duration filter.
+    _note("soundcloud", "first result was not within 30 s of the track's length")
     return None
 
 
@@ -256,19 +273,22 @@ def search_and_download(
         if src == "bandcamp":
             try:
                 path = _download_from_bandcamp(track, output_dir)
-            except Exception:
+            except Exception as exc:
+                _note("bandcamp", f"{type(exc).__name__}: {exc}")
                 path = None
 
         elif src == "youtube":
             try:
                 path = _download_from_youtube(track, output_dir)
-            except Exception:
+            except Exception as exc:
+                _note("youtube", f"{type(exc).__name__}: {exc}")
                 path = None
 
         elif src == "soundcloud":
             try:
                 path = _download_from_soundcloud(track, output_dir)
-            except Exception:
+            except Exception as exc:
+                _note("soundcloud", f"{type(exc).__name__}: {exc}")
                 path = None
 
         if path is not None:

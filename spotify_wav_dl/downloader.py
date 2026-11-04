@@ -166,23 +166,23 @@ def _download_from_youtube(
         "--no-overwrites",
         "--no-warnings",
         "-q",
+        # The first hit is often removed, blocked or the wrong length. Try each
+        # hit in turn and stop after one download.
+        "--ignore-errors",
+        "--max-downloads", "1",
         query,
-        "--playlist-items", "1",
     ]
 
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
 
-    if result.returncode != 0:
-        _note("youtube", _failure_line(result))
-        return None
-
+    # Exit code 1 after a skipped hit and 101 for the download limit are both
+    # normal here, so the file decides.
     for ext in ("flac", "opus", "wav", "m4a", "ogg", "mp3", "webm"):
         candidate = output_dir / f"{track.safe_filename}.{ext}"
         if candidate.exists():
             return candidate
 
-    # yt-dlp exits 0 when the first hit fails the duration filter.
-    _note("youtube", "first result was not within 30 s of the track's length")
+    _note("youtube", _failure_line(result) if result.returncode not in (0, 101) else "no result within 30 s of the track's length")
     return None
 
 
@@ -212,23 +212,23 @@ def _download_from_soundcloud(
         "--no-overwrites",
         "--no-warnings",
         "-q",
+        # The first hit is often removed, blocked or the wrong length. Try each
+        # hit in turn and stop after one download.
+        "--ignore-errors",
+        "--max-downloads", "1",
         query,
-        "--playlist-items", "1",
     ]
 
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
 
-    if result.returncode != 0:
-        _note("soundcloud", _failure_line(result))
-        return None
-
+    # Exit code 1 after a skipped hit and 101 for the download limit are both
+    # normal here, so the file decides.
     for ext in ("flac", "opus", "wav", "m4a", "ogg", "mp3", "webm"):
         candidate = output_dir / f"{track.safe_filename}.{ext}"
         if candidate.exists():
             return candidate
 
-    # yt-dlp exits 0 when the first hit fails the duration filter.
-    _note("soundcloud", "first result was not within 30 s of the track's length")
+    _note("soundcloud", _failure_line(result) if result.returncode not in (0, 101) else "no result within 30 s of the track's length")
     return None
 
 

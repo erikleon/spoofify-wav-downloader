@@ -47,6 +47,16 @@ class TrackInfo:
         """Return a search query optimised for finding the track on YouTube."""
         return f"{self.artist_string} - {self.title}"
 
+    @property
+    def primary_query(self) -> str:
+        """The same search with the first artist only.
+
+        A long credit list buries the right upload: "Hans Zimmer, Lebo M. -
+        King of Pride Rock" ranks the 6:00 soundtrack cut 22nd on YouTube, and
+        "Hans Zimmer - King of Pride Rock" ranks it 2nd.
+        """
+        return f"{self.artists[0]} - {self.title}"
+
 
 PLAYLIST_URL_RE = re.compile(
     r"(?:https?://)?(?:open\.)?spotify\.com/playlist/([a-zA-Z0-9]+)"

@@ -147,13 +147,14 @@ def _download_from_youtube(
     output_dir: Path,
     *,
     max_search_results: int = 5,
+    query: str | None = None,
 ) -> Path | None:
     """Search YouTube for *track* and download the best-quality audio."""
     yt_dlp = _find_yt_dlp()
     _find_ffmpeg()
 
     output_template = str(output_dir / f"{track.safe_filename}.%(ext)s")
-    query = f"ytsearch{max_search_results}:{track.search_query}"
+    query = f"ytsearch{max_search_results}:{query or track.search_query}"
 
     cmd = [
         yt_dlp,
@@ -193,13 +194,14 @@ def _download_from_soundcloud(
     output_dir: Path,
     *,
     max_search_results: int = 5,
+    query: str | None = None,
 ) -> Path | None:
     """Search SoundCloud for *track* and download the best-quality audio."""
     yt_dlp = _find_yt_dlp()
     _find_ffmpeg()
 
     output_template = str(output_dir / f"{track.safe_filename}.%(ext)s")
-    query = f"scsearch{max_search_results}:{track.search_query}"
+    query = f"scsearch{max_search_results}:{query or track.search_query}"
 
     cmd = [
         yt_dlp,
@@ -278,18 +280,26 @@ def search_and_download(
                 path = None
 
         elif src == "youtube":
-            try:
-                path = _download_from_youtube(track, output_dir)
-            except Exception as exc:
-                _note("youtube", f"{type(exc).__name__}: {exc}")
-                path = None
+            fetch = _download_from_youtube
+            for query in dict.fromkeys((track.search_query, track.primary_query)):
+                try:
+                    path = fetch(track, output_dir, query=query)
+                except Exception as exc:
+                    _note("youtube", f"{type(exc).__name__}: {exc}")
+                    path = None
+                if path is not None:
+                    break
 
         elif src == "soundcloud":
-            try:
-                path = _download_from_soundcloud(track, output_dir)
-            except Exception as exc:
-                _note("soundcloud", f"{type(exc).__name__}: {exc}")
-                path = None
+            fetch = _download_from_soundcloud
+            for query in dict.fromkeys((track.search_query, track.primary_query)):
+                try:
+                    path = fetch(track, output_dir, query=query)
+                except Exception as exc:
+                    _note("soundcloud", f"{type(exc).__name__}: {exc}")
+                    path = None
+                if path is not None:
+                    break
 
         if path is not None:
             return path, src

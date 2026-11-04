@@ -57,6 +57,21 @@ ALBUM_URL_RE = re.compile(
 )
 
 
+TRACK_URL_RE = re.compile(
+    r"(?:https?://)?(?:open\.)?spotify\.com/track/([a-zA-Z0-9]+)"
+)
+
+
+def _extract_track_id(url_or_id: str) -> str:
+    """Extract a Spotify track ID from a URL or return the raw ID."""
+    match = TRACK_URL_RE.search(url_or_id)
+    if match:
+        return match.group(1)
+    if re.fullmatch(r"[a-zA-Z0-9]{22}", url_or_id):
+        return url_or_id
+    raise ValueError(f"Invalid Spotify track URL or ID: {url_or_id!r}")
+
+
 def _extract_album_id(url_or_id: str) -> str:
     """Extract a Spotify album ID from a URL or return the raw ID."""
     match = ALBUM_URL_RE.search(url_or_id)
@@ -183,3 +198,29 @@ def get_album_tracks(url_or_id: str) -> tuple[str, list[TrackInfo]]:
             break
 
     return album_name, tracks
+
+
+def get_track(url_or_id: str) -> tuple[str, list[TrackInfo]]:
+    """Fetch the Spotify track *url_or_id* and return (album_name, [track]).
+
+    The album name stands in for the collection name, so a single track is
+    filed and tagged the way it would be inside an album download.
+    """
+    sp = _build_client()
+    track = sp.track(_extract_track_id(url_or_id))
+    album = track["album"]
+    external_ids = track.get("external_ids", {})
+    info = TrackInfo(
+        title=track["name"],
+        artists=[a["name"] for a in track["artists"]],
+        album=album["name"],
+        album_artist=album["artists"][0]["name"] if album.get("artists") else "",
+        disc_number=track.get("disc_number", 1),
+        duration_ms=track["duration_ms"],
+        isrc=external_ids.get("isrc"),
+        track_number=track["track_number"],
+        total_tracks=album.get("total_tracks", 0),
+        release_date=album.get("release_date", ""),
+        spotify_id=track["id"],
+    )
+    return album["name"], [info]

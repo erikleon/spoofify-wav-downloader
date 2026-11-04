@@ -1,6 +1,6 @@
 # spotify-wav-downloader
 
-Download songs from a Spotify playlist or album, a Bandcamp album, or an entire Bandcamp artist discography as high-quality lossless **.aiff** files (PCM 24-bit / 48 kHz) with full metadata for Apple Music.
+Download songs from a Spotify playlist, album or track, a Bandcamp album, or an entire Bandcamp artist discography as high-quality lossless **.aiff** files (PCM 24-bit / 48 kHz) with full metadata for Apple Music.
 
 ## How it works
 
@@ -47,6 +47,9 @@ spotify-wav-dl "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M"
 
 # Spotify album
 spotify-wav-dl "https://open.spotify.com/album/4eLPsYPBmXABThSJ821sqY"
+
+# Spotify track (saved under its album's name)
+spotify-wav-dl "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC"
 
 # Bandcamp album
 spotify-wav-dl "https://artist.bandcamp.com/album/album-name"

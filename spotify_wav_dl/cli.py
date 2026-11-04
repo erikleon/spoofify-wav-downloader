@@ -26,7 +26,11 @@ from .bandcamp import (
 )
 from .converter import to_aiff, write_id3_tags
 from .downloader import search_and_download
-from .spotify import get_album_tracks as get_spotify_album_tracks, get_playlist_tracks
+from .spotify import (
+    get_album_tracks as get_spotify_album_tracks,
+    get_playlist_tracks,
+    get_track as get_spotify_track,
+)
 
 console = Console()
 
@@ -35,10 +39,16 @@ _SPOTIFY_ALBUM_RE = re.compile(
     r"(?:https?://)?(?:open\.)?spotify\.com/album/([a-zA-Z0-9]+)"
 )
 
+_SPOTIFY_TRACK_RE = re.compile(
+    r"(?:https?://)?(?:open\.)?spotify\.com/track/([a-zA-Z0-9]+)"
+)
+
 
 def _detect_input_type(url: str) -> str:
     if _SPOTIFY_ALBUM_RE.search(url):
         return "spotify_album"
+    if _SPOTIFY_TRACK_RE.search(url):
+        return "spotify_track"
     if BANDCAMP_ALBUM_URL_RE.search(url):
         return "bandcamp_album"
     if BANDCAMP_ARTIST_URL_RE.search(url):
@@ -58,7 +68,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "playlist",
-        help="Spotify playlist/album URL or ID, or Bandcamp album URL",
+        help="Spotify playlist/album/track URL or ID, or Bandcamp album URL",
     )
     parser.add_argument(
         "-o",
@@ -298,6 +308,7 @@ def main(argv: list[str] | None = None) -> None:
     # --- Single album or playlist ---
     _labels = {
         "spotify_album":    ("Fetching album from Spotify…",    "Album"),
+        "spotify_track":    ("Fetching track from Spotify…",    "Track's album"),
         "bandcamp_album":   ("Fetching album from Bandcamp…",   "Album"),
         "spotify_playlist": ("Fetching playlist from Spotify…", "Playlist"),
     }
@@ -307,6 +318,8 @@ def main(argv: list[str] | None = None) -> None:
         try:
             if input_type == "spotify_album":
                 collection_name, tracks = get_spotify_album_tracks(args.playlist)
+            elif input_type == "spotify_track":
+                collection_name, tracks = get_spotify_track(args.playlist)
             elif input_type == "bandcamp_album":
                 collection_name, tracks = get_bandcamp_album_tracks(args.playlist)
             else:
